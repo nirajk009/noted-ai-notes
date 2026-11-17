@@ -162,52 +162,6 @@ textarea {
     font-size: 11px;
     border-radius: 5px;
 }
-.sidebar-tip {
-    margin-top: auto;
-    padding: 22px 17px 18px;
-    background: #e9eddc;
-    border: 1px solid #dde3cc;
-    border-radius: 9px;
-}
-.tip-icon {
-    display: inline-flex;
-    padding: 7px;
-    margin-bottom: 12px;
-    background: #dce3c7;
-    color: #647140;
-    border-radius: 7px;
-}
-.tip-icon .icon {
-    width: 19px;
-    height: 19px;
-}
-.sidebar-tip h2 {
-    font-size: 15px;
-    font-weight: 600;
-    line-height: 1.5;
-    margin: 0 0 10px;
-    letter-spacing: -0.25px;
-}
-.sidebar-tip p {
-    margin: 0;
-    color: #7a826c;
-    font-size: 12px;
-    line-height: 1.8;
-}
-.sidebar-footer {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding-top: 28px;
-    color: #818877;
-    font-size: 10px;
-}
-.status-dot {
-    width: 6px;
-    height: 6px;
-    border-radius: 50%;
-    background: #84976a;
-}
 
 /* Main page */
 .workspace {
@@ -873,6 +827,14 @@ h1 span {
     border: 1px solid #e4e9d6;
     border-radius: 9px;
 }
+.summary-panel.summary-empty {
+    padding: 0;
+    border: none;
+    background: transparent;
+}
+.summary-panel.summary-empty > .button {
+    margin-top: 0;
+}
 .summary-panel-heading {
     display: flex;
     justify-content: space-between;
@@ -1029,9 +991,7 @@ h1 span {
     .brand > span:last-child,
     .brand-caption,
     .nav-label,
-    .nav-button > span,
-    .sidebar-tip,
-    .sidebar-footer {
+    .nav-button > span {
         display: none;
     }
     .navigation {

@@ -109,6 +109,8 @@ Semantic search: query embedding + saved note embeddings -> NoteSearchService
 - `resources/js/app.js`: frontend API calls and UI events.
 - `resources/css/app.css`: page styling and responsive layouts.
 
+The frontend displays six notes per page. Search runs automatically 500 milliseconds after typing stops; pressing Enter also searches immediately. Opening a note or its summary link shows the note first. For a note without a saved summary, the reader shows a **Summarize note** button and makes no AI request until it is clicked.
+
 No additional runtime PHP packages, vector database, queues, or Redis are required. Laravel's existing framework and HTTP client handle the backend.
 
 ## Database schema
@@ -222,7 +224,7 @@ The default similarity threshold is a starting point. Search quality depends on 
 ## Security and scope
 
 - All Google calls run in Laravel. The browser only talks to the local Laravel API.
-- The API key stays in `.env`, which is excluded by the existing `.gitignore`; `.env.example` contains a placeholder.
+- The API key stays server-side in `.env`. This local repository tracks `.env` at the user's explicit request; `.env.example` contains a placeholder.
 - Eloquent binds database values, and inputs pass through Form Requests.
 - Note text and AI output are inserted into the page using `textContent`.
 - The app limits general API requests to 120/minute/IP and AI-related requests to 15/minute/IP.
@@ -267,4 +269,4 @@ Suggested demo: create a note about caching, reload the page to show persistence
 - AI actions require internet access and available Google quota. Existing notes remain usable when Google is unavailable.
 - `npm audit` currently reports an upstream `picomatch` advisory in the existing Vite development dependencies, with no patched version listed. A normal `npm audit fix` does not resolve it. The app does not accept user-supplied glob patterns. See [GHSA-fc5q-39xc-vjpf](https://github.com/advisories/GHSA-fc5q-39xc-vjpf).
 
-Git and Docker setup are intentionally left out as requested.
+Git is initialized locally, including an initial commit with `.env` as requested. No remote is configured. Docker setup is intentionally left out.

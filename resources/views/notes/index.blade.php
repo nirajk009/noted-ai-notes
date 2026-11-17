@@ -48,25 +48,10 @@
                     <span>Search notes</span>
                 </button>
             </nav>
-            <div class="sidebar-tip">
-                <span class="tip-icon"><x-icon name="sparkles" /></span>
-                <h2>
-                    Find the thought.
-                    <br />
-                    Not just the words.
-                </h2>
-                <p>
-                    Describe what you remember. Search will find notes with a
-                    similar meaning.
-                </p>
-            </div>
-            <div class="sidebar-footer">
-                <span class="status-dot"></span>
-                A calmer place to think
-            </div>
         </aside>
 
         <div class="workspace">
+            {{--
             <header class="topbar">
                 <div class="breadcrumb">
                     <x-icon name="book" />
@@ -76,6 +61,7 @@
                 </div>
                 <span class="topbar-caption">Good ideas deserve a place.</span>
             </header>
+            --}}
             <main id="main-content" class="main-content">
                 <section class="page-heading">
                     <div>
@@ -84,9 +70,6 @@
                             Your notes
                             <span>.</span>
                         </h1>
-                        <p class="page-description">
-                            Capture a thought. Make room for the next one.
-                        </p>
                     </div>
                     <button
                         id="new-note-button"
@@ -101,7 +84,6 @@
                     <div class="search-heading">
                         <x-icon name="sparkles" />
                         <span>A thought away from what you need</span>
-                        <span class="small-label">SEMANTIC SEARCH</span>
                     </div>
                     <form id="search-form" class="search-form" role="search">
                         <div class="search-input-wrap">
@@ -115,6 +97,7 @@
                                 maxlength="500"
                                 placeholder="What are you looking for?"
                                 autocomplete="off"
+                                aria-controls="notes-list"
                             />
                             <button
                                 id="clear-search-button"
@@ -126,14 +109,6 @@
                                 <x-icon name="close" />
                             </button>
                         </div>
-                        <button
-                            id="search-button"
-                            class="button button-search"
-                            type="submit"
-                        >
-                            Search notes
-                            <x-icon name="arrow" />
-                        </button>
                     </form>
                     <p class="search-help">
                         Go beyond exact words. Try
@@ -358,19 +333,22 @@
                 <h2 id="reader-title"></h2>
                 <p id="reader-content" class="reader-content"></p>
                 <section
-                    class="summary-panel"
-                    aria-labelledby="summary-heading"
+                    id="summary-panel"
+                    class="summary-panel summary-empty"
+                    aria-label="Note summary"
                 >
-                    <div class="summary-panel-heading">
+                    <div
+                        id="summary-panel-heading"
+                        class="summary-panel-heading"
+                        hidden
+                    >
                         <h3 id="summary-heading">
                             <x-icon name="sparkles" />
                             A little clarity
                         </h3>
                         <span class="small-label">AI SUMMARY</span>
                     </div>
-                    <p id="reader-summary">
-                        Turn this note into a few clear sentences.
-                    </p>
+                    <p id="reader-summary" hidden></p>
                     <button
                         id="generate-summary-button"
                         class="button button-secondary"

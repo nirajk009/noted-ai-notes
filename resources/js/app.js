@@ -19,6 +19,7 @@ let deleting = false;
 let processingAi = false;
 let listRequestNumber = 0;
 let notificationTimer;
+let searchTimer;
 
 async function apiRequest(path, options = {}) {
     let response;
@@ -91,7 +92,7 @@ function shortDate(value) {
 async function loadNotes(page = 1) {
     const requestNumber = ++listRequestNumber;
     const query = activeQuery;
-    const parameters = new URLSearchParams({ page, limit: 9 });
+    const parameters = new URLSearchParams({ page, limit: 6 });
 
     if (query) {
         parameters.set('q', query);
@@ -102,7 +103,6 @@ async function loadNotes(page = 1) {
     notesList.replaceChildren();
     element('empty-state').hidden = true;
     element('pagination').hidden = true;
-    element('search-button').disabled = true;
     showMessage('list-error', '');
 
     try {
@@ -160,7 +160,6 @@ async function loadNotes(page = 1) {
         if (requestNumber === listRequestNumber) {
             element('loading-state').hidden = true;
             notesList.setAttribute('aria-busy', 'false');
-            element('search-button').disabled = false;
         }
     }
 }
@@ -202,10 +201,32 @@ function renderNotes(notes) {
 }
 
 function clearSearch() {
+    clearTimeout(searchTimer);
     activeQuery = '';
     element('search-input').value = '';
     element('clear-search-button').hidden = true;
     loadNotes();
+}
+
+function searchNotes() {
+    clearTimeout(searchTimer);
+    activeQuery = element('search-input').value.trim();
+    loadNotes();
+}
+
+function scheduleSearch() {
+    clearTimeout(searchTimer);
+    const query = element('search-input').value.trim();
+    element('clear-search-button').hidden = query.length === 0;
+
+    if (!query) {
+        clearSearch();
+        return;
+    }
+
+    // Stop an older response from replacing results while the user is typing.
+    listRequestNumber++;
+    searchTimer = setTimeout(searchNotes, 500);
 }
 
 function openEditor(note = null) {
@@ -265,6 +286,7 @@ async function saveNote(event) {
         });
 
         editorDialog.close();
+        clearTimeout(searchTimer);
         activeQuery = '';
         element('search-input').value = '';
         element('clear-search-button').hidden = true;
@@ -285,6 +307,7 @@ async function saveNote(event) {
 }
 
 function renderReader() {
+    const hasSummary = Boolean(selectedNote.summary);
     element('reader-title').textContent = selectedNote.title;
     element('reader-content').textContent = selectedNote.content;
     element('reader-date').textContent =
@@ -294,13 +317,15 @@ function renderReader() {
             day: 'numeric',
             year: 'numeric',
         }).format(new Date(selectedNote.updated_at));
-    element('reader-summary').textContent =
-        selectedNote.summary || 'Turn this note into a few clear sentences.';
-    element('generate-summary-button').hidden = Boolean(selectedNote.summary);
+    element('summary-panel').classList.toggle('summary-empty', !hasSummary);
+    element('summary-panel-heading').hidden = !hasSummary;
+    element('reader-summary').textContent = selectedNote.summary || '';
+    element('reader-summary').hidden = !hasSummary;
+    element('generate-summary-button').hidden = hasSummary;
     element('embedding-retry-panel').hidden = selectedNote.search_ready;
 }
 
-async function openNote(id, summarize = false) {
+async function openNote(id) {
     try {
         const result = await apiRequest('/api/notes/' + id);
         selectedNote = result.data;
@@ -309,10 +334,6 @@ async function openNote(id, summarize = false) {
 
         if (!readerDialog.open) {
             readerDialog.showModal();
-        }
-
-        if (summarize && !selectedNote.summary) {
-            await processAi('summary');
         }
     } catch (error) {
         notify(error.message, true);
@@ -404,19 +425,15 @@ element('clear-search-button').addEventListener('click', clearSearch);
 element('focus-search-button').addEventListener('click', () =>
     element('search-input').focus(),
 );
-element('search-input').addEventListener('input', () => {
-    element('clear-search-button').hidden =
-        element('search-input').value.length === 0;
-});
+element('search-input').addEventListener('input', scheduleSearch);
 element('search-form').addEventListener('submit', (event) => {
     event.preventDefault();
-    activeQuery = element('search-input').value.trim();
-    loadNotes();
+    searchNotes();
 });
 element('search-example-button').addEventListener('click', () => {
     element('search-input').value = 'ways to make an app faster';
-    element('clear-search-button').hidden = false;
     element('search-input').focus();
+    scheduleSearch();
 });
 element('previous-page-button').addEventListener('click', () => {
     if (currentPage > 1) loadNotes(currentPage - 1);
@@ -428,10 +445,7 @@ notesList.addEventListener('click', (event) => {
     const button = event.target.closest('button[data-action]');
 
     if (button && !processingAi) {
-        openNote(
-            button.closest('.note-card').dataset.id,
-            button.dataset.action === 'summary',
-        );
+        openNote(button.closest('.note-card').dataset.id);
     }
 });
 
