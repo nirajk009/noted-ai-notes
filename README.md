@@ -216,7 +216,7 @@ These cutoffs are a starting point. Search quality depends on the actual notes a
 ## Security and scope
 
 - All Google calls run in Laravel. The browser only talks to the local Laravel API.
-- The API key stays server-side in `.env`. This local repository tracks `.env` at the user's explicit request; `.env.example` contains a placeholder.
+- The browser receives no Google credentials. This repository includes `.env` and its Google API key at the owner's explicit request; `.env.example` contains a placeholder.
 - Eloquent binds database values, and inputs pass through Form Requests.
 - Note text and AI output are inserted into the page using `textContent`.
 - The app limits general API requests to 120/minute/IP and AI-related requests to 15/minute/IP.
@@ -259,4 +259,4 @@ Suggested demo: create a note about caching, reload the page to show persistence
 - AI actions require internet access and available Google quota. Existing notes remain usable when Google is unavailable.
 - `npm audit` currently reports an upstream `picomatch` advisory in the existing Vite development dependencies, with no patched version listed. A normal `npm audit fix` does not resolve it. The app does not accept user-supplied glob patterns. See [GHSA-fc5q-39xc-vjpf](https://github.com/advisories/GHSA-fc5q-39xc-vjpf).
 
-Git is initialized locally, including an initial commit with `.env` as requested. No remote is configured. Docker setup is intentionally left out.
+Repository: [nirajk009/noted-ai-notes](https://github.com/nirajk009/noted-ai-notes). The tracked `.env` is included as requested. Docker setup is intentionally left out.
