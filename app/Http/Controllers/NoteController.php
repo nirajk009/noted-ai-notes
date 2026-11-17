@@ -51,6 +51,7 @@ class NoteController extends Controller
             $note->embedding = null;
             $note->embedding_model = null;
             $note->summary = null;
+            $note->summary_title = null;
             $note->summary_model = null;
         }
 

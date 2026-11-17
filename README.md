@@ -2,8 +2,6 @@
 
 A Laravel notes app with MySQL persistence, semantic search through Google Gemini Embedding 2, and saved AI summaries with model fallback. The frontend uses Blade, CSS, and plain JavaScript. There is no login: everyone opening this local app uses the same notes workspace.
 
-![Notes workspace](docs/screenshots/desktop.png)
-
 ## Requirements
 
 - PHP 8.2 or later with `pdo_mysql`, `curl`, `openssl`, and `mbstring` enabled.
@@ -68,7 +66,7 @@ Optional sample notes:
 php artisan db:seed --class=DemoNoteSeeder
 ```
 
-The seeder saves six editable examples and requests their real embeddings. It does not delete existing notes or overwrite existing titles. All samples can be deleted through the app.
+The seeder saves two editable examples, **Welcome to Noted** and **Small ideas, worth keeping**, and requests their real embeddings. The default `php artisan db:seed` command uses this same seeder. It does not delete existing notes or overwrite existing titles. Both samples can be deleted through the app.
 
 ### Local HTTPS certificates
 
@@ -111,6 +109,8 @@ Semantic search: query embedding + saved note embeddings -> NoteSearchService
 
 The frontend displays six notes per page. Search runs automatically 500 milliseconds after typing stops; pressing Enter also searches immediately. Opening a note or its summary link shows the note first. For a note without a saved summary, the reader shows a **Summarize note** button and makes no AI request until it is clicked.
 
+Opening a note changes the address to `/notes/{id}`. Refreshing or sharing that URL opens the same note. Browser Back closes the reader, and Forward opens it again. Closing a note opened directly returns to `/`. The reader still loads its data through `GET /api/notes/{id}`.
+
 No additional runtime PHP packages, vector database, queues, or Redis are required. Laravel's existing framework and HTTP client handle the backend.
 
 ## Database schema
@@ -123,6 +123,7 @@ The application's custom data lives in one table, `notes`:
 | `title` | varchar(255) | Required title |
 | `content` | text | Required note, up to 12,000 characters |
 | `summary` | nullable text | Completed AI summary |
+| `summary_title` | nullable varchar(100) | Note-specific heading generated with the summary |
 | `summary_model` | nullable varchar(255) | Model that produced a new summary |
 | `embedding` | nullable JSON | Array of 768 numbers from Google |
 | `embedding_model` | nullable varchar(255) | Model used to create that vector |
@@ -132,7 +133,7 @@ The application's custom data lives in one table, `notes`:
 
 Notes are saved to MySQL before making an embedding request. If Google fails, the API still confirms the save and includes a warning. The UI marks the note as search pending and provides a **Prepare for search** button in the note dialog.
 
-Editing the title or content clears the old embedding, summary, and summary model. The backend then generates an embedding for the new content. Summaries are created on demand, persisted in the same row, and reused on subsequent summary requests.
+Editing the title or content clears the old embedding, summary, summary heading, and summary model. The backend then generates an embedding for the new content. Summaries and their headings are created together on demand, persisted in the same row, and reused on subsequent summary requests. Older saved summaries use the note's title as their heading without another AI call.
 
 ### Summary fallback and caching
 
@@ -156,20 +157,18 @@ Run `php artisan cache:clear` to clear the temporary file cache. This leaves not
 
 ## API documentation
 
+Open [Swagger UI](http://127.0.0.1:8000/docs) to try the two summary endpoints. Download the [OpenAPI specification](resources/api/openapi.json) or import the [Postman collection](resources/api/Noted.postman_collection.json).
+
+In Postman, `base_url` defaults to `http://127.0.0.1:8000/api`. Set `note_id` to an existing note ID; it defaults to the sample note with ID 2. No Google key or login is needed in Postman. Swagger's assets are built locally with the existing Vite setup using [Swagger UI](https://swagger.io/docs/open-source-tools/swagger-ui/usage/installation/).
+
 Base URL: `http://127.0.0.1:8000/api`. Send `Accept: application/json`; JSON writes also use `Content-Type: application/json`.
 
 | Method | Endpoint | Result |
 | --- | --- | --- |
-| GET | `/notes?page=1&limit=10` | Paginated notes, recently updated first |
-| POST | `/notes` | Save a note and attempt its embedding; HTTP 201 |
-| GET | `/notes/{id}` | One note |
-| PUT / PATCH | `/notes/{id}` | Update a note; send both title and content |
-| DELETE | `/notes/{id}` | Delete a note; HTTP 204, empty body |
-| GET | `/notes/search?q=faster%20website&page=1&limit=10` | Semantic matches, highest similarity first |
-| POST | `/notes/{id}/summary` | Generate and save a summary, or return the saved summary |
-| POST | `/notes/{id}/embedding` | Prepare a saved note for search; reuse a compatible existing embedding |
+| POST | `/notes/summary` | Summarize supplied title and content without saving a note |
+| POST | `/notes/{id}/summary` | Load the saved summary, or generate and save one for that existing note |
 
-Create or update body:
+For `POST /notes/summary`, send:
 
 ```json
 {
@@ -178,34 +177,25 @@ Create or update body:
 }
 ```
 
-Create/update response:
+It returns HTTP 200 without creating or changing a note:
 
 ```json
 {
-  "message": "Note created.",
+  "message": "Summary generated.",
   "data": {
-    "id": 1,
-    "title": "Laravel performance",
-    "content": "Cache repeated database queries and use eager loading to avoid N+1 queries.",
-    "summary": null,
-    "summary_model": null,
-    "search_ready": true,
-    "created_at": "2026-11-18T10:00:00.000000Z",
-    "updated_at": "2026-11-18T10:00:01.000000Z"
-  },
-  "warning": null
+    "summary_title": "Faster queries with caching",
+    "summary": "Cache repeated queries to improve performance. Use eager loading to avoid N+1 queries.",
+    "summary_model": "gemini-3.1-flash-lite"
+  }
 }
 ```
 
-Single-note responses use `{ "data": { ... } }`. Lists use Laravel's `data`, `links`, and `meta` structure. `meta` includes `total`, `current_page`, `last_page`, `per_page`, `from`, and `to`. Search results additionally include each note's `similarity` value. It is a cosine score, not a confidence percentage.
+For `POST /notes/{id}/summary`, put the existing note's ID in the URL and send no body. The response is HTTP 200 with `message` and the full saved note in `data`, including `summary_title`, `summary`, and `summary_model`. The message is `Saved summary loaded.` when no Google call was needed, or `Summary generated and saved.` when a new summary was saved. Editing the note clears its old summary. The title-and-content endpoint generates a new summary on each request and does not save or cache that result as a note.
 
 Validation:
 
 - `title`: required string, at most 255 characters.
 - `content`: required string, at most 12,000 characters.
-- `q`: required search string, at most 500 characters.
-- `page`: positive integer; default 1.
-- `limit`: integer from 1 to 50; default 10.
 
 Errors use JSON with a `message`. Validation errors also include `errors` keyed by field name. Status codes: 422 for invalid input, 404 for an unknown note, 429 for the app's rate limit, 503 for unavailable Google access or quota, and 502 for malformed or incomplete provider output.
 
@@ -215,11 +205,13 @@ Errors use JSON with a `message`. Validation errors also include `errors` keyed 
 2. Store the embedding and model name in MySQL.
 3. Embed the search query using the same model and dimension size.
 4. Compare it against compatible, prepared notes using cosine similarity in PHP.
-5. Keep results at or above `GEMINI_MINIMUM_SIMILARITY`, sort descending, and paginate.
+5. Apply a slightly stricter cutoff for short queries, sort descending, and paginate.
 
 This is a real embedding search, rather than SQL keyword matching. A query such as “ways to make a website respond faster” can retrieve a note about caching and database indexes. Pending notes are excluded until their embedding is ready.
 
-The default similarity threshold is a starting point. Search quality depends on the actual notes and queries. If you change the embedding model or dimension count, old vectors are excluded and notes must be prepared again.
+Short queries get a small similarity boost of up to 0.06 above `GEMINI_MINIMUM_SIMILARITY`. This boost gradually decreases with query length and disappears at 40 characters. With the default base of 0.65, a 3-character query needs about 0.706 similarity, a 20-character query needs 0.68, and a query of 40 or more characters uses 0.65. Longer queries never loosen below the configured base. Outer spaces are ignored, and multibyte characters are counted correctly.
+
+These cutoffs are a starting point. Search quality depends on the actual notes and queries. If you change the embedding model or dimension count, old vectors are excluded and notes must be prepared again.
 
 ## Security and scope
 
@@ -232,6 +224,8 @@ The default similarity threshold is a starting point. Search quality depends on 
 - This assignment intentionally uses a shared workspace without authentication. Run it locally as configured.
 
 ## Tests
+
+The test suite is kept locally in `tests/` and excluded from Git. To run it in this workspace:
 
 Create a dedicated test database:
 
@@ -253,13 +247,9 @@ npm run build
 
 ## AI usage and prompts
 
-See [AI_USAGE.md](docs/AI_USAGE.md) for development tools, representative development prompts, exact runtime prompts, and validation details.
+Runtime prompts are in [GoogleAiService.php](app/Services/GoogleAiService.php). Additional development notes and screenshots are kept locally in `docs/` and excluded from Git.
 
-## Screenshots and demo
-
-- [Desktop workspace](docs/screenshots/desktop.png)
-- [Mobile workspace](docs/screenshots/mobile.png)
-- [A saved AI summary](docs/screenshots/summary.png)
+## Demo
 
 Suggested demo: create a note about caching, reload the page to show persistence, search for “ways to make an app faster,” generate its summary, edit the note, then delete it.
 

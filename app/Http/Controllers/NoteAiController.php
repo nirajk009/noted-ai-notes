@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Exceptions\GoogleAiException;
+use App\Http\Requests\SaveNoteRequest;
 use App\Http\Requests\SearchNotesRequest;
 use App\Http\Resources\NoteResource;
 use App\Models\Note;
@@ -16,8 +17,9 @@ class NoteAiController extends Controller
 {
     public function search(SearchNotesRequest $request, GoogleAiService $google, NoteSearchService $search): AnonymousResourceCollection
     {
-        $embedding = $google->embedSearch($request->validated('q'));
-        $matches = $search->search($embedding);
+        $query = $request->validated('q');
+        $embedding = $google->embedSearch($query);
+        $matches = $search->search($embedding, $query);
         $page = $request->integer('page', 1);
         $limit = $request->integer('limit', 10);
 
@@ -30,6 +32,21 @@ class NoteAiController extends Controller
         );
 
         return NoteResource::collection($notes);
+    }
+
+    public function summaryFromText(SaveNoteRequest $request, GoogleAiService $google): JsonResponse
+    {
+        $note = new Note($request->validated());
+        $summary = $google->summarize($note);
+
+        return response()->json([
+            'message' => 'Summary generated.',
+            'data' => [
+                'summary_title' => $summary['title'],
+                'summary' => $summary['text'],
+                'summary_model' => $summary['model'],
+            ],
+        ]);
     }
 
     public function summary(Note $note, GoogleAiService $google): JsonResponse
@@ -49,6 +66,7 @@ class NoteAiController extends Controller
         }
 
         $note->summary = $summary['text'];
+        $note->summary_title = $summary['title'];
         $note->summary_model = $summary['model'];
         $note->save();
 

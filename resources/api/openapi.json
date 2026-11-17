@@ -1,0 +1,352 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Noted Summary API",
+    "version": "1.0.0",
+    "description": "Two endpoints: summarize a title and content without saving a note, or summarize an existing note by ID and reuse its saved summary. No login or client API key is required. Google calls run only in Laravel. Each IP is limited to 15 AI requests per minute and 120 total API requests per minute."
+  },
+  "servers": [
+    {
+      "url": "/api",
+      "description": "This Laravel server"
+    }
+  ],
+  "tags": [
+    {
+      "name": "Summaries",
+      "description": "Generate a summary or reuse one saved for an existing note."
+    }
+  ],
+  "security": [],
+  "paths": {
+    "/notes/summary": {
+      "post": {
+        "tags": [
+          "Summaries"
+        ],
+        "summary": "Summarize a title and text",
+        "operationId": "summarizeText",
+        "description": "Send the note title and its text in the content field. Returns a summary heading, summary text, and model. Does not create or update any database note, and does not create an embedding. Each request generates a new summary through Google.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SummaryInput"
+              },
+              "example": {
+                "title": "Laravel performance",
+                "content": "Cache repeated database queries, add indexes, and use eager loading to avoid N+1 queries."
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Summary generated without saving a note.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TextSummaryResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          },
+          "502": {
+            "$ref": "#/components/responses/InvalidAiResponse"
+          },
+          "503": {
+            "$ref": "#/components/responses/AiUnavailable"
+          }
+        }
+      }
+    },
+    "/notes/{id}/summary": {
+      "post": {
+        "tags": [
+          "Summaries"
+        ],
+        "summary": "Summarize an existing note by ID",
+        "operationId": "summarizeStoredNote",
+        "description": "Send only the existing note ID in the URL, with no body. Laravel reads the note from MySQL. If a summary is already saved, it returns that result without calling Google. Otherwise it generates a summary through Google and saves the heading, text, and model on the note. Editing the note clears that saved summary.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "ID of an existing note. The sample Small ideas, worth keeping note currently has ID 2.",
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "minimum": 1
+            },
+            "example": 2
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The note with its stored or newly generated summary.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StoredSummaryResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          },
+          "502": {
+            "$ref": "#/components/responses/InvalidAiResponse"
+          },
+          "503": {
+            "$ref": "#/components/responses/AiUnavailable"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "SummaryInput": {
+        "type": "object",
+        "required": [
+          "title",
+          "content"
+        ],
+        "properties": {
+          "title": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 255
+          },
+          "content": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 12000,
+            "description": "The text to summarize. Use the content field name."
+          }
+        }
+      },
+      "TextSummaryResponse": {
+        "type": "object",
+        "required": [
+          "message",
+          "data"
+        ],
+        "properties": {
+          "message": {
+            "type": "string",
+            "example": "Summary generated."
+          },
+          "data": {
+            "type": "object",
+            "required": [
+              "summary_title",
+              "summary",
+              "summary_model"
+            ],
+            "properties": {
+              "summary_title": {
+                "type": "string",
+                "maxLength": 100,
+                "example": "Faster queries with caching"
+              },
+              "summary": {
+                "type": "string",
+                "example": "Cache repeated queries and add indexes to improve app performance. Use eager loading to avoid N+1 queries."
+              },
+              "summary_model": {
+                "type": "string",
+                "example": "gemini-3.1-flash-lite"
+              }
+            }
+          }
+        }
+      },
+      "StoredSummaryResponse": {
+        "type": "object",
+        "required": [
+          "message",
+          "data"
+        ],
+        "properties": {
+          "message": {
+            "type": "string",
+            "enum": [
+              "Saved summary loaded.",
+              "Summary generated and saved."
+            ]
+          },
+          "data": {
+            "$ref": "#/components/schemas/StoredNote"
+          }
+        }
+      },
+      "StoredNote": {
+        "type": "object",
+        "required": [
+          "id",
+          "title",
+          "content",
+          "summary",
+          "summary_title",
+          "summary_model",
+          "search_ready",
+          "created_at",
+          "updated_at"
+        ],
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64",
+            "example": 2
+          },
+          "title": {
+            "type": "string",
+            "example": "Small ideas, worth keeping"
+          },
+          "content": {
+            "type": "string",
+            "example": "A reading list planner, a personal project dashboard, and a way to remember useful conversations."
+          },
+          "summary": {
+            "type": "string",
+            "example": "Keep collecting useful app ideas before choosing one to build."
+          },
+          "summary_title": {
+            "type": "string",
+            "maxLength": 100,
+            "nullable": true,
+            "example": "Ideas for useful personal apps",
+            "description": "Older saved summaries may not have a generated heading."
+          },
+          "summary_model": {
+            "type": "string",
+            "nullable": true,
+            "example": "gemini-3.1-flash-lite",
+            "description": "Older saved summaries may not record the model."
+          },
+          "search_ready": {
+            "type": "boolean",
+            "example": true
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2026-11-18T10:00:00.000000Z"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2026-11-18T10:00:01.000000Z"
+          }
+        }
+      },
+      "Error": {
+        "type": "object",
+        "required": [
+          "message"
+        ],
+        "properties": {
+          "message": {
+            "type": "string",
+            "example": "Google AI is temporarily unavailable. Please try again shortly."
+          }
+        }
+      },
+      "ValidationError": {
+        "type": "object",
+        "required": [
+          "message",
+          "errors"
+        ],
+        "properties": {
+          "message": {
+            "type": "string",
+            "example": "The title field is required."
+          },
+          "errors": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      }
+    },
+    "responses": {
+      "ValidationError": {
+        "description": "Required fields are missing, blank, or too long. Google is not called.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ValidationError"
+            }
+          }
+        }
+      },
+      "NotFound": {
+        "description": "No note with that ID exists. Google is not called.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            }
+          }
+        }
+      },
+      "RateLimited": {
+        "description": "Too many requests. Wait before retrying.",
+        "headers": {
+          "Retry-After": {
+            "description": "Seconds until another request is allowed.",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        },
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            }
+          }
+        }
+      },
+      "InvalidAiResponse": {
+        "description": "Google returned an incomplete or invalid summary. No summary was saved.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            }
+          }
+        }
+      },
+      "AiUnavailable": {
+        "description": "Google is unavailable, access or free quota was rejected, or all configured models are cooling down. No summary was saved.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            }
+          }
+        }
+      }
+    }
+  }
+}

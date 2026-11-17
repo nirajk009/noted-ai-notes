@@ -14,6 +14,7 @@ class NoteResource extends JsonResource
             'title' => $this->title,
             'content' => $this->content,
             'summary' => $this->summary,
+            'summary_title' => $this->summary_title,
             'summary_model' => $this->summary_model,
             'search_ready' => $this->resource->isSearchReady(),
             'similarity' => $this->when($this->resource->getAttribute('similarity') !== null, $this->similarity),

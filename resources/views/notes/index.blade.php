@@ -51,17 +51,6 @@
         </aside>
 
         <div class="workspace">
-            {{--
-            <header class="topbar">
-                <div class="breadcrumb">
-                    <x-icon name="book" />
-                    <span>Workspace</span>
-                    <span class="breadcrumb-slash">/</span>
-                    <strong>All notes</strong>
-                </div>
-                <span class="topbar-caption">Good ideas deserve a place.</span>
-            </header>
-            --}}
             <main id="main-content" class="main-content">
                 <section class="page-heading">
                     <div>
@@ -110,12 +99,6 @@
                             </button>
                         </div>
                     </form>
-                    <p class="search-help">
-                        Go beyond exact words. Try
-                        <button id="search-example-button" type="button">
-                            “ways to make an app faster”
-                        </button>
-                    </p>
                 </section>
                 <section class="notes-section" aria-labelledby="notes-heading">
                     <div class="section-toolbar">
@@ -344,7 +327,7 @@
                     >
                         <h3 id="summary-heading">
                             <x-icon name="sparkles" />
-                            A little clarity
+                            <span id="reader-summary-title"></span>
                         </h3>
                         <span class="small-label">AI SUMMARY</span>
                     </div>

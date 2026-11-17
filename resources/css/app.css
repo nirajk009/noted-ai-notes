@@ -167,36 +167,6 @@ textarea {
 .workspace {
     margin-left: 244px;
 }
-.topbar {
-    height: 76px;
-    padding: 0 46px;
-    border-bottom: 1px solid var(--border);
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-}
-.breadcrumb {
-    display: flex;
-    align-items: center;
-    gap: 14px;
-    font-size: 11px;
-    color: #8a8f83;
-}
-.breadcrumb .icon {
-    width: 16px;
-    height: 16px;
-}
-.breadcrumb strong {
-    font-weight: 500;
-    color: #484d43;
-}
-.breadcrumb-slash {
-    color: #c2c6bc;
-}
-.topbar-caption {
-    color: #91968a;
-    font-size: 11px;
-}
 .main-content {
     max-width: 1390px;
     padding: 48px 46px 22px;
@@ -359,19 +329,6 @@ h1 span {
 }
 .search-input-wrap input::-webkit-search-cancel-button {
     display: none;
-}
-.search-help {
-    margin: 11px 0 0;
-    font-size: 10px;
-    color: #849073;
-}
-.search-help button {
-    padding: 0;
-    border: none;
-    background: transparent;
-    color: #697651;
-    text-decoration: underline;
-    text-underline-offset: 3px;
 }
 .notes-section {
     margin-top: 32px;
@@ -841,8 +798,13 @@ h1 span {
     align-items: center;
     gap: 10px;
 }
+.summary-panel-heading > .small-label {
+    flex-shrink: 0;
+    white-space: nowrap;
+}
 .summary-panel h3 {
     display: flex;
+    min-width: 0;
     align-items: center;
     gap: 7px;
     font-size: 13px;
@@ -850,9 +812,14 @@ h1 span {
     margin: 0;
     color: #62704c;
 }
+.summary-panel h3 span {
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
 .summary-panel h3 .icon {
     width: 16px;
     height: 16px;
+    flex-shrink: 0;
 }
 .summary-panel > p {
     font-size: 12px;
@@ -968,9 +935,6 @@ h1 span {
     .main-content {
         padding: 36px 30px 22px;
     }
-    .topbar {
-        padding: 0 30px;
-    }
     .notes-grid {
         grid-template-columns: repeat(2, minmax(0, 1fr));
     }
@@ -1004,13 +968,6 @@ h1 span {
     }
     .workspace {
         margin-left: 74px;
-    }
-    .topbar {
-        height: 65px;
-        padding: 0 24px;
-    }
-    .topbar-caption {
-        display: none;
     }
     .main-content {
         padding: 30px 24px 20px;
@@ -1046,9 +1003,6 @@ h1 span {
         min-height: 35px;
         padding: 7px 12px;
         font-size: 11px;
-    }
-    .search-help {
-        font-size: 9px;
     }
     .notes-grid {
         gap: 13px;
@@ -1111,9 +1065,6 @@ h1 span {
     }
     .workspace {
         margin-left: 0;
-    }
-    .topbar {
-        display: none;
     }
     .main-content {
         padding: 31px 20px 20px;

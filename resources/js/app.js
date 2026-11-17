@@ -18,6 +18,7 @@ let saving = false;
 let deleting = false;
 let processingAi = false;
 let listRequestNumber = 0;
+let noteRequestNumber = 0;
 let notificationTimer;
 let searchTimer;
 
@@ -286,6 +287,11 @@ async function saveNote(event) {
         });
 
         editorDialog.close();
+        if (editingNoteId && selectedNote && selectedNote.id === result.data.id) {
+            selectedNote = result.data;
+            renderReader();
+        }
+
         clearTimeout(searchTimer);
         activeQuery = '';
         element('search-input').value = '';
@@ -319,24 +325,79 @@ function renderReader() {
         }).format(new Date(selectedNote.updated_at));
     element('summary-panel').classList.toggle('summary-empty', !hasSummary);
     element('summary-panel-heading').hidden = !hasSummary;
+    element('reader-summary-title').textContent =
+        selectedNote.summary_title || selectedNote.title;
     element('reader-summary').textContent = selectedNote.summary || '';
     element('reader-summary').hidden = !hasSummary;
     element('generate-summary-button').hidden = hasSummary;
     element('embedding-retry-panel').hidden = selectedNote.search_ready;
 }
 
-async function openNote(id) {
+function noteIdFromUrl() {
+    const match = window.location.pathname.match(/^\/notes\/(\d+)\/?$/);
+    return match ? match[1] : null;
+}
+
+async function openNote(id, updateUrl = true) {
+    const requestNumber = ++noteRequestNumber;
+
     try {
         const result = await apiRequest('/api/notes/' + id);
+
+        if (requestNumber !== noteRequestNumber) {
+            return;
+        }
+
         selectedNote = result.data;
         showMessage('reader-error', '');
         renderReader();
+
+        if (updateUrl && noteIdFromUrl() !== String(selectedNote.id)) {
+            window.history.pushState(
+                { noteReader: true },
+                '',
+                '/notes/' + selectedNote.id,
+            );
+        }
 
         if (!readerDialog.open) {
             readerDialog.showModal();
         }
     } catch (error) {
-        notify(error.message, true);
+        if (requestNumber === noteRequestNumber) {
+            notify(error.message, true);
+        }
+    }
+}
+
+function closeNote() {
+    noteRequestNumber++;
+    readerDialog.close();
+    selectedNote = null;
+
+    if (!noteIdFromUrl()) {
+        return;
+    }
+
+    // A shared link has no list entry to go back to in this tab.
+    if (window.history.state?.noteReader) {
+        window.history.back();
+    } else {
+        window.history.replaceState(null, '', '/');
+    }
+}
+
+function syncNoteWithUrl() {
+    noteRequestNumber++;
+    readerDialog.close();
+    editorDialog.close();
+    deleteDialog.close();
+    selectedNote = null;
+
+    const id = noteIdFromUrl();
+
+    if (id) {
+        openNote(id, false);
     }
 }
 
@@ -402,8 +463,8 @@ async function deleteNote() {
     try {
         await apiRequest('/api/notes/' + selectedNote.id, { method: 'DELETE' });
         deleteDialog.close();
-        readerDialog.close();
-        selectedNote = null;
+        window.history.replaceState(null, '', '/');
+        closeNote();
         notify('Note deleted.');
         await loadNotes(currentPage);
     } catch (error) {
@@ -429,11 +490,6 @@ element('search-input').addEventListener('input', scheduleSearch);
 element('search-form').addEventListener('submit', (event) => {
     event.preventDefault();
     searchNotes();
-});
-element('search-example-button').addEventListener('click', () => {
-    element('search-input').value = 'ways to make an app faster';
-    element('search-input').focus();
-    scheduleSearch();
 });
 element('previous-page-button').addEventListener('click', () => {
     if (currentPage > 1) loadNotes(currentPage - 1);
@@ -464,9 +520,11 @@ element('note-content').addEventListener('input', () => {
     element('content-count').textContent =
         `${element('note-content').value.length.toLocaleString()} / 12,000`;
 });
-element('close-reader-button').addEventListener('click', () =>
-    readerDialog.close(),
-);
+element('close-reader-button').addEventListener('click', closeNote);
+readerDialog.addEventListener('cancel', (event) => {
+    event.preventDefault();
+    closeNote();
+});
 element('generate-summary-button').addEventListener('click', () =>
     processAi('summary'),
 );
@@ -474,7 +532,6 @@ element('retry-embedding-button').addEventListener('click', () =>
     processAi('embedding'),
 );
 element('edit-note-button').addEventListener('click', () => {
-    readerDialog.close();
     openEditor(selectedNote);
 });
 element('delete-note-button').addEventListener('click', () => {
@@ -494,4 +551,7 @@ element('dismiss-notification-button').addEventListener(
     () => (element('notification').hidden = true),
 );
 
+window.addEventListener('popstate', syncNoteWithUrl);
+
 loadNotes();
+syncNoteWithUrl();

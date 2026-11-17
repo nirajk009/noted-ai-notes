@@ -1,0 +1,42 @@
+body {
+    margin: 0;
+    background: #fafafa;
+    color: #30382d;
+    font-family: Arial, sans-serif;
+}
+
+.docs-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 16px;
+    padding: 20px 32px;
+    background: #fff;
+    border-bottom: 1px solid #e1e5dc;
+}
+
+.docs-header strong {
+    font-size: 20px;
+}
+
+.docs-header nav {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px;
+}
+
+.docs-header a {
+    color: #50633c;
+    font-size: 14px;
+}
+
+@media (max-width: 540px) {
+    .docs-header {
+        padding: 20px;
+    }
+
+    .swagger-ui .responses-wrapper {
+        overflow-x: auto;
+    }
+}

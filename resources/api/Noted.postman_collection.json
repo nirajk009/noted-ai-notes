@@ -1,0 +1,108 @@
+{
+  "info": {
+    "name": "Noted Summary API",
+    "description": "Only the two summary APIs. Set base_url to your Laravel /api URL and note_id to an existing note ID. The title-and-content request never saves a note. The ID request saves a missing summary and reuses it on later requests. No Google API key or login is needed in Postman.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "noauth"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://127.0.0.1:8000/api",
+      "type": "string"
+    },
+    {
+      "key": "note_id",
+      "value": "2",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Summarize title and content",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"title\": \"Laravel performance\",\n  \"content\": \"Cache repeated database queries, add indexes, and use eager loading to avoid N+1 queries.\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": "{{base_url}}/notes/summary",
+        "description": "Send a title and the note text in content. Returns summary_title, summary, and summary_model. Does not save a note or an embedding. Each request generates a new summary through Google."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Returns 200\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test(\"Returns a summary without a note ID\", function () {",
+              "    const body = pm.response.json();",
+              "    pm.expect(body.data.summary_title).to.be.a(\"string\").and.not.empty;",
+              "    pm.expect(body.data.summary).to.be.a(\"string\").and.not.empty;",
+              "    pm.expect(body.data.summary_model).to.be.a(\"string\").and.not.empty;",
+              "    pm.expect(body.data).not.to.have.property(\"id\");",
+              "});"
+            ]
+          }
+        }
+      ],
+      "response": []
+    },
+    {
+      "name": "Summarize an existing note by ID",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/notes/{{note_id}}/summary",
+        "description": "Set note_id to an existing note ID. Send no body. Returns the stored summary when available, otherwise reads the note from MySQL, generates its summary through Google, and saves it. Send this request again to reuse the saved result."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Returns 200\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test(\"Returns the selected note and its summary\", function () {",
+              "    const body = pm.response.json();",
+              "    pm.expect(String(body.data.id)).to.equal(pm.variables.get(\"note_id\"));",
+              "    pm.expect(body.data.summary).to.be.a(\"string\").and.not.empty;",
+              "    pm.expect(body.message).to.be.oneOf([\"Saved summary loaded.\", \"Summary generated and saved.\"]);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "response": []
+    }
+  ]
+}
