@@ -19,7 +19,7 @@ class NoteAiController extends Controller
     {
         $query = $request->validated('q');
         $embedding = $google->embedSearch($query);
-        $matches = $search->search($embedding, $query);
+        $matches = $search->search($embedding);
         $page = $request->integer('page', 1);
         $limit = $request->integer('limit', 10);
 
