@@ -223,32 +223,6 @@ These cutoffs are a starting point. Search quality depends on the actual notes a
 - Provider response bodies, note contents, and API keys are not logged or returned in provider errors.
 - This assignment intentionally uses a shared workspace without authentication. Run it locally as configured.
 
-## Tests
-
-The test suite is kept locally in `tests/` and excluded from Git. To run it in this workspace:
-
-Create a dedicated test database:
-
-```powershell
-& C:\xampp\mysql\bin\mysql.exe -u root -e "CREATE DATABASE IF NOT EXISTS ai_notes_testing CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
-php artisan test
-```
-
-`phpunit.xml` explicitly selects `ai_notes_testing`, with local XAMPP credentials. Adjust those test credentials if your MySQL setup differs. Tests reset and use this separate database, never `ai_notes`. Google requests are faked and unexpected external calls are blocked in the API tests.
-
-The suite covers persistence, CRUD, input validation, pagination, similarity ranking, cached summaries, model fallback order, model cooldown expiry, query-cache expiry, current search results after database changes, pending-embedding retries, provider outages, invalid responses, and rate limiting.
-
-Frontend checks:
-
-```powershell
-node --check resources/js/app.js
-npm run build
-```
-
-## AI usage and prompts
-
-Runtime prompts are in [GoogleAiService.php](app/Services/GoogleAiService.php). Additional development notes and screenshots are kept locally in `docs/` and excluded from Git.
-
 ## Demo
 
 Suggested demo: create a note about caching, reload the page to show persistence, search for “ways to make an app faster,” generate its summary, edit the note, then delete it.
