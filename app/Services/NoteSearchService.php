@@ -7,9 +7,14 @@ use Illuminate\Support\Collection;
 
 class NoteSearchService
 {
-    public function search(array $queryEmbedding): Collection
+    public function search(array $queryEmbedding, string $query): Collection
     {
         $matches = collect();
+
+        // Short queries need a closer match. Ease back to the normal cutoff by 40 characters.
+        $queryLength = min(mb_strlen(trim($query)), 40);
+        $shortQueryBoost = 0.06 * (1 - $queryLength / 40);
+        $minimumSimilarity = min(1, config('services.gemini.minimum_similarity') + $shortQueryBoost);
 
         // A plain PHP comparison is sufficient for this small notes database.
         $notes = Note::whereNotNull('embedding')
@@ -23,7 +28,7 @@ class NoteSearchService
 
             $score = $this->cosineSimilarity($queryEmbedding, $note->embedding);
 
-            if ($score >= config('services.gemini.minimum_similarity')) {
+            if ($score >= $minimumSimilarity) {
                 $note->setAttribute('similarity', round($score, 4));
                 $matches->push($note);
             }

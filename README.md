@@ -205,13 +205,13 @@ Errors use JSON with a `message`. Validation errors also include `errors` keyed 
 2. Store the embedding and model name in MySQL.
 3. Embed the search query using the same model and dimension size.
 4. Compare it against compatible, prepared notes using cosine similarity in PHP.
-5. Apply the configured similarity cutoff, sort descending, and paginate.
+5. Apply a slightly stricter cutoff for short queries, sort descending, and paginate.
 
 This is a real embedding search, rather than SQL keyword matching. A query such as “ways to make a website respond faster” can retrieve a note about caching and database indexes. Pending notes are excluded until their embedding is ready.
 
-The default minimum similarity is 0.65 and can be changed with `GEMINI_MINIMUM_SIMILARITY`.
+Short queries get a small similarity boost of up to 0.06 above `GEMINI_MINIMUM_SIMILARITY`. This boost gradually decreases with query length and disappears at 40 characters. With the default base of 0.65, a 3-character query needs about 0.706 similarity, a 20-character query needs 0.68, and a query of 40 or more characters uses 0.65. Longer queries never loosen below the configured base. Outer spaces are ignored, and multibyte characters are counted correctly.
 
-This cutoff is a starting point. Search quality depends on the actual notes and queries. If you change the embedding model or dimension count, old vectors are excluded and notes must be prepared again.
+These cutoffs are a starting point. Search quality depends on the actual notes and queries. If you change the embedding model or dimension count, old vectors are excluded and notes must be prepared again.
 
 ## Security and scope
 
